@@ -16,7 +16,7 @@ class HelloWorldLayer < Joybox::Core::Layer
     @background_node = CCParallaxNode.node
     self << @background_node
 
-    # 2) Create the sprites we'll add to the CCParallaxNode
+    # 2) Create the sprites we'll add to the ParallaxNode
     @spacedust_1    = Sprite.new(:file_name => "Backgrounds/bg_front_spacedust.png")
     @spacedust_2    = Sprite.new(:file_name => "Backgrounds/bg_front_spacedust.png")
     @planetsunrise  = Sprite.new(:file_name => "Backgrounds/bg_planetsunrise.png")
@@ -37,8 +37,19 @@ class HelloWorldLayer < Joybox::Core::Layer
     @background_node.addChild(@spacialnomaly2, z: -1, parallaxRatio: bg_speed, positionOffset: [1500, Screen.height * 0.9])
 
     schedule_update do |dt|
-      background_scroll_velocity = jbp(-1000, 0)
-      @background_node.position = jbpAdd(@background_node.position, jbpMult(background_scroll_velocity, dt));
+      update_background(dt)
+    end
+  end
+
+  def update_background(dt)
+    background_scroll_velocity = jbp(-1000, 0)
+    @background_node.position = jbpAdd(@background_node.position, jbpMult(background_scroll_velocity, dt))
+
+    space_dusts = [@spacedust_1, @spacedust_2]
+    space_dusts.each do |space_dust|
+      if @background_node.convertToWorldSpace(space_dust.position).x < -1 * space_dust.contentSize.width
+        @background_node.increment_offset(:offset => jbp(2 * space_dust.contentSize.width, 0), :child => space_dust)
+      end
     end
   end
 end
