@@ -16,7 +16,7 @@ class HelloWorldLayer < Joybox::Core::Layer
     @background_node = CCParallaxNode.node
     self << @background_node
 
-    # 2) Create the sprites we'll add to the ParallaxNode
+    # 2) Create the sprites we'll add to the CCParallaxNode
     @spacedust_1    = Sprite.new(:file_name => "Backgrounds/bg_front_spacedust.png")
     @spacedust_2    = Sprite.new(:file_name => "Backgrounds/bg_front_spacedust.png")
     @planetsunrise  = Sprite.new(:file_name => "Backgrounds/bg_planetsunrise.png")
@@ -38,6 +38,12 @@ class HelloWorldLayer < Joybox::Core::Layer
 
     schedule_update do |dt|
       update_background(dt)
+    end
+
+    stars = ["Particles/Stars1.plist", "Particles/Stars2.plist", "Particles/Stars3.plist"]
+    stars.each do |star|
+      stars_effect = CCParticleSystemQuad.particleWithFile(star)
+      self.addChild(stars_effect, z: 1)
     end
   end
 
