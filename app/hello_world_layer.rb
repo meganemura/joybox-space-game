@@ -27,6 +27,7 @@ class HelloWorldLayer < Joybox::Core::Layer
       @asteroids.addObject(asteroid)
     end
 
+    @lives = 0
     @next_ship_laser = 0
     @ship_lasers = CCArray.alloc.initWithCapacity(KNumLasers)
     KNumLasers.times do |n|
@@ -63,12 +64,14 @@ class HelloWorldLayer < Joybox::Core::Layer
     schedule_update do |dt|
       update_background(dt)
 
+      # Move by accelerometer
       max_y = Screen.height - @ship.contentSize.height.half;
       min_y = @ship.contentSize.height.half
-
       new_y = @ship.position.y + (@ship_points_per_sec_y * dt);
       new_y = [[new_y, min_y].max, max_y].min
       @ship.position = jbp(@ship.position.x, new_y);
+
+      detect_laser_collision
 
       spawn_asteroid
     end
@@ -153,6 +156,30 @@ class HelloWorldLayer < Joybox::Core::Layer
       move_action_done = CCCallFuncN.actionWithTarget(self, selector: 'set_invisible:')
       move_sequence = Sequence.with(:actions => [move_action, move_action_done])
       asteroid.run_action(move_sequence)
+    end
+  end
+
+  def detect_laser_collision
+    @asteroids.each do |asteroid|
+      next unless asteroid.visible
+
+      @ship_lasers.each do |ship_laser|
+        next unless ship_laser.visible
+
+        if CGRectIntersectsRect(ship_laser.boundingBox, asteroid.boundingBox)
+          ship_laser.visible = false
+          asteroid.visible = false
+
+          next
+        end
+      end
+
+      if CGRectIntersectsRect(@ship.boundingBox, asteroid.boundingBox)
+        asteroid.visible = false
+        @ship.runAction(CCBlink.actionWithDuration(1.0, blinks: 9))
+        @lives -= 1
+      end
+
     end
   end
 
