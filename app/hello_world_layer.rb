@@ -2,9 +2,11 @@ class HelloWorldLayer < Joybox::Core::Layer
 
   scene
 
+  KNumAsteroids = 15
   def on_enter
     @ship_points_per_sec_y = 0
     self.isAccelerometerEnabled = true
+
 
     @batch_node = CCSpriteBatchNode.batchNodeWithFile("Spritesheets/Sprites.pvr.ccz")
     self << @batch_node
@@ -13,6 +15,17 @@ class HelloWorldLayer < Joybox::Core::Layer
     @ship = Sprite.new(:frame_name => "SpaceFlier_sm_1.png")
     @ship.position = [Screen.width * 0.1, Screen.height * 0.5]
     @batch_node.add_child(@ship, :z => 1)
+
+    @next_asteroid = 0
+    @next_asteroid_spawn = 0
+    @asteroids = CCArray.alloc.initWithCapacity(KNumAsteroids)
+    KNumAsteroids.times do |n|
+      asteroid = Sprite.new(:frame_name => "asteroid.png")
+      asteroid.visible = false
+      @batch_node.addChild(asteroid)
+      @asteroids.addObject(asteroid)
+    end
+
 
     # 1) Create the CCParallaxNode
     @background_node = CCParallaxNode.node
@@ -47,6 +60,8 @@ class HelloWorldLayer < Joybox::Core::Layer
       new_y = @ship.position.y + (@ship_points_per_sec_y * dt);
       new_y = [[new_y, min_y].max, max_y].min
       @ship.position = jbp(@ship.position.x, new_y);
+
+      spawn_asteroid
     end
 
     stars = ["Particles/Stars1.plist", "Particles/Stars2.plist", "Particles/Stars3.plist"]
@@ -88,4 +103,36 @@ class HelloWorldLayer < Joybox::Core::Layer
     @shipPointsPerSecY = points_per_sec
   end
 
+  def spawn_asteroid
+    current_time = Time.now.to_i
+
+    if current_time > @next_asteroid_spawn
+      rand_secs = random_value_between(0.20, andValue: 1.0)
+      @next_asteroid_spawn = rand_secs + current_time
+
+      rand_y = random_value_between(0.0, andValue: Screen.height)
+      rand_duration = random_value_between(2.0, andValue: 10.0)
+
+      asteroid = @asteroids.objectAtIndex(@next_asteroid)
+      @next_asteroid += 1
+      @next_asteroid = 0 if @next_asteroid >= @asteroids.count
+
+      asteroid.stopAllActions
+      asteroid.position = jbp(Screen.width + asteroid.contentSize.width.half, rand_y)
+      asteroid.visible = true
+      move_action = Move.by(:position => [-1 * Screen.width - asteroid.contentSize.width, 0], :duration => rand_duration)
+      move_action_done = CCCallFuncN.actionWithTarget(self, selector: 'set_invisible:')
+      move_sequence = Sequence.with(:actions => [move_action, move_action_done])
+      asteroid.run_action(move_sequence)
+    end
+  end
+
+  # NOTE: Couldn't use rand((low..high))
+  def random_value_between(low, andValue: high)
+    rand * (high - low) + low
+  end
+
+  def set_invisible(node)
+    node.visible = false
+  end
 end
