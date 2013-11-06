@@ -3,6 +3,9 @@ class HelloWorldLayer < Joybox::Core::Layer
   scene
 
   def on_enter
+    @ship_points_per_sec_y = 0
+    self.isAccelerometerEnabled = true
+
     @batch_node = CCSpriteBatchNode.batchNodeWithFile("Spritesheets/Sprites.pvr.ccz")
     self << @batch_node
 
@@ -10,7 +13,6 @@ class HelloWorldLayer < Joybox::Core::Layer
     @ship = Sprite.new(:frame_name => "SpaceFlier_sm_1.png")
     @ship.position = [Screen.width * 0.1, Screen.height * 0.5]
     @batch_node.add_child(@ship, :z => 1)
-
 
     # 1) Create the CCParallaxNode
     @background_node = CCParallaxNode.node
@@ -38,6 +40,13 @@ class HelloWorldLayer < Joybox::Core::Layer
 
     schedule_update do |dt|
       update_background(dt)
+
+      max_y = Screen.height - @ship.contentSize.height.half;
+      min_y = @ship.contentSize.height.half
+
+      new_y = @ship.position.y + (@ship_points_per_sec_y * dt);
+      new_y = [[new_y, min_y].max, max_y].min
+      @ship.position = jbp(@ship.position.x, new_y);
     end
 
     stars = ["Particles/Stars1.plist", "Particles/Stars2.plist", "Particles/Stars3.plist"]
@@ -58,4 +67,25 @@ class HelloWorldLayer < Joybox::Core::Layer
       end
     end
   end
+
+  KFilteringFactor = 0.1
+  KRestAccelX = -0.6
+  KShipMaxPointsPerSec = Screen.half_height
+  KMaxDiffX = 0.2
+  def accelerometer(accelerometer, didAccelerate: acceleration)
+    rolling_x = (acceleration.x * KFilteringFactor) + (rolling_x * (1.0 - KFilteringFactor))
+    rolling_y = (acceleration.y * KFilteringFactor) + (rolling_y * (1.0 - KFilteringFactor))
+    rolling_z = (acceleration.z * KFilteringFactor) + (rolling_z * (1.0 - KFilteringFactor))
+
+    accel_x = acceleration.x - rolling_x
+    accel_y = acceleration.y - rolling_y
+    accel_z = acceleration.z - rolling_z
+
+    accel_diff = accel_X - KRestAccelX
+    accel_fraction = accel_diff / KMaxDiffX
+    points_per_sec = KShipMaxPointsPerSec * accel_fraction
+
+    @shipPointsPerSecY = points_per_sec
+  end
+
 end
