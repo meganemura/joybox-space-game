@@ -3,10 +3,11 @@ class HelloWorldLayer < Joybox::Core::Layer
   scene
 
   KNumAsteroids = 15
+  KNumLasers = 5
   def on_enter
     @ship_points_per_sec_y = 0
     self.isAccelerometerEnabled = true
-
+    self.isTouchEnabled = true
 
     @batch_node = CCSpriteBatchNode.batchNodeWithFile("Spritesheets/Sprites.pvr.ccz")
     self << @batch_node
@@ -26,6 +27,14 @@ class HelloWorldLayer < Joybox::Core::Layer
       @asteroids.addObject(asteroid)
     end
 
+    @next_ship_laser = 0
+    @ship_lasers = CCArray.alloc.initWithCapacity(KNumLasers)
+    KNumLasers.times do |n|
+      ship_laser = Sprite.new(:frame_name => "laserbeam_blue.png")
+      ship_laser.visible = false
+      @batch_node.addChild(ship_laser)
+      @ship_lasers.addObject(ship_laser)
+    end
 
     # 1) Create the CCParallaxNode
     @background_node = CCParallaxNode.node
@@ -64,11 +73,31 @@ class HelloWorldLayer < Joybox::Core::Layer
       spawn_asteroid
     end
 
+    on_touches_began do |touches, event|
+      shoot_laser(touches, event)
+    end
+
     stars = ["Particles/Stars1.plist", "Particles/Stars2.plist", "Particles/Stars3.plist"]
     stars.each do |star|
       stars_effect = CCParticleSystemQuad.particleWithFile(star)
       self.addChild(stars_effect, z: 1)
     end
+  end
+
+  def shoot_laser(touches, event)
+    ship_laser = @ship_lasers.objectAtIndex(@next_ship_laser)
+    @next_ship_laser += 1
+    @next_ship_laser = 0 if @next_ship_laser >= @ship_lasers.count
+
+    ship_laser.position = jbpAdd(@ship.position, jbp(ship_laser.contentSize.width.half, 0))
+    ship_laser.visible = true
+    ship_laser.stopAllActions
+
+
+    move_action = Move.by(:position => [Screen.width, 0], :duration => 0.5)
+    move_action_done = CCCallFuncN.actionWithTarget(self, selector: 'set_invisible:')
+    move_sequence = Sequence.with(:actions => [move_action, move_action_done])
+    ship_laser.run_action(move_sequence)
   end
 
   def update_background(dt)
