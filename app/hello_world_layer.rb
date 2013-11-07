@@ -40,6 +40,16 @@ class HelloWorldLayer < Joybox::Core::Layer
     current_time = Time.now.to_i
     @game_over_time = current_time + 3
 
+
+    background_audio = BackgroundAudio.new
+    background_audio.add(:audio => :space_game, :file_name => 'Sounds/SpaceGame.caf')
+    background_audio.play(:space_game, :loop => true)
+
+    @audio_effect = AudioEffect.new
+    @audio_effect.add(:effect => :explosion_large,  :file_name => 'Sounds/explosion_large.caf')
+    @audio_effect.add(:effect => :laser_ship,       :file_name => 'Sounds/laser_ship.caf')
+
+
     # 1) Create the CCParallaxNode
     @background_node = CCParallaxNode.node
     self << @background_node
@@ -106,6 +116,7 @@ class HelloWorldLayer < Joybox::Core::Layer
     move_action_done = CCCallFuncN.actionWithTarget(self, selector: 'set_invisible:')
     move_sequence = Sequence.with(:actions => [move_action, move_action_done])
     ship_laser.run_action(move_sequence)
+    @audio_effect.play(:laser_ship)
   end
 
   def update_background(dt)
@@ -174,7 +185,7 @@ class HelloWorldLayer < Joybox::Core::Layer
         if CGRectIntersectsRect(ship_laser.boundingBox, asteroid.boundingBox)
           ship_laser.visible = false
           asteroid.visible = false
-
+          @audio_effect.play(:explosion_large)
           next
         end
       end
@@ -183,6 +194,7 @@ class HelloWorldLayer < Joybox::Core::Layer
         asteroid.visible = false
         @ship.runAction(CCBlink.actionWithDuration(1.0, blinks: 9))
         @lives -= 1
+        @audio_effect.play(:explosion_large)
       end
 
     end
