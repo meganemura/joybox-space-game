@@ -27,7 +27,6 @@ class HelloWorldLayer < Joybox::Core::Layer
       @asteroids.addObject(asteroid)
     end
 
-    @lives = 0
     @next_ship_laser = 0
     @ship_lasers = CCArray.alloc.initWithCapacity(KNumLasers)
     KNumLasers.times do |n|
@@ -36,6 +35,10 @@ class HelloWorldLayer < Joybox::Core::Layer
       @batch_node.addChild(ship_laser)
       @ship_lasers.addObject(ship_laser)
     end
+
+    @lives = 3
+    current_time = Time.now.to_i
+    @game_over_time = current_time + 3
 
     # 1) Create the CCParallaxNode
     @background_node = CCParallaxNode.node
@@ -74,6 +77,8 @@ class HelloWorldLayer < Joybox::Core::Layer
       detect_laser_collision
 
       spawn_asteroid
+
+      game_over?
     end
 
     on_touches_began do |touches, event|
@@ -190,5 +195,66 @@ class HelloWorldLayer < Joybox::Core::Layer
 
   def set_invisible(node)
     node.visible = false
+  end
+
+  def game_over?
+    if @lives <= 0
+      @ship.stopAllActions
+      @ship.visible = false
+      end_scene(:end_reason_lose)
+    elsif Time.now.to_i >= @game_over_time
+      end_scene(:end_reason_win)
+    end
+  end
+
+  def restart_tapped(sender)
+    Joybox.director.replaceScene(
+      CCTransitionZoomFlipX.transitionWithDuration(0.5, scene: HelloWorldLayer.scene)
+    )
+  end
+
+  def end_scene(end_reason)
+    return if @game_over
+    @game_over = true
+
+    if end_reason == :end_reason_win
+      message = "You win!"
+    elsif end_reason == :end_reason_lose
+      message = "You lose!"
+    end
+
+    if ui_user_interface_idiom == UIUserInterfaceIdiomPad
+      label = CCLabelBMFont.labelWithString(message, fntFile: "Fonts/Arial-hd.fnt")
+    else
+      label = CCLabelBMFont.labelWithString(message, fntFile: "Fonts/Arial.fnt")
+    end
+    label.scale = 0.1
+    label.position = jbp(Screen.half_width, Screen.height * 0.6)
+    self << label
+
+    if ui_user_interface_idiom == UIUserInterfaceIdiomPad
+      restart_label = CCLabelBMFont.labelWithString("Restart", fntFile: "Fonts/Arial-hd.fnt")
+    else
+      restart_label = CCLabelBMFont.labelWithString("Restart", fntFile: "Fonts/Arial.fnt")
+    end
+    restart_item = CCMenuItemLabel.itemWithLabel(restart_label, target: self, selector: 'restart_tapped:')
+    restart_item.scale = 0.1
+    restart_item.position = jbp(Screen.half_width, Screen.height * 0.4)
+    menu = Menu.new(:position => [0, 0], :items => [restart_item])
+    self << menu
+
+    restart_item.run_action(Scale.to(:scale => 1.0, :duration => 0.5))
+    label.run_action(Scale.to(:scale => 1.0, :duration => 1.0))
+  end
+
+  def ui_user_interface_idiom
+    # FIXME
+    return
+
+    if UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad
+      UIStoryboard.storyboardWithName "iPad-Storyboard", bundle: NSBundle.mainBundle
+    else
+      UIStoryboard.storyboardWithName "iPhone-Storyboard", bundle: NSBundle.mainBundle
+    end
   end
 end
